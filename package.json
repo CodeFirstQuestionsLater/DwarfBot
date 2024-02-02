@@ -1,0 +1,14 @@
+ 
+{
+  "name": "Dwarfbot",
+  "version": "1.0.0",
+  "description": "A Discord bot that does awesome things",
+  "main": "dwarf.js", 
+  "scripts": {
+    "start": "node --trace-deprecation dwarf.js" 
+  },
+  "dependencies": {
+    "discord.js": "^13.1.0" ,
+    "dotenv": "^10.0.0"
+  }
+}

@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  discord-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile  # Use your Dockerfile name if it's different
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - /docker/config/dwarfbot/timer.json:/usr/src/app/timer.json
+      - /docker/config/dwarfbot/members.json:/usr/src/app/members.json

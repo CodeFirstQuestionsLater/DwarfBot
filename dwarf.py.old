@@ -1,0 +1,132 @@
+import discord
+from discord.ext import commands
+import asyncio
+import os
+import random
+import json
+from datetime import datetime, timedelta
+
+# Access the bot token from the environment variable
+bot_token = os.environ.get('BOT_TOKEN')
+
+# Files for persistent data
+names_file = 'turn_list.txt'
+state_file = 'bot_state.json'
+
+# Initialize Discord Bot
+bot = commands.Bot(command_prefix='/')
+
+# Function to load names from file
+def load_names():
+    if os.path.exists(names_file):
+        with open(names_file, 'r') as file:
+            return file.read().splitlines()
+    return []
+
+# Function to save names to file
+def save_names():
+    with open(names_file, 'w') as file:
+        file.write('\n'.join(turn_list))
+
+# Function to load bot state from file
+def load_state():
+    if os.path.exists(state_file):
+        with open(state_file, 'r') as file:
+            return json.load(file)
+    return {'reminding': False, 'start_time': None}
+
+# Function to save bot state to file
+def save_state():
+    state_data = {'reminding': reminding, 'start_time': start_time}
+    with open(state_file, 'w') as file:
+        json.dump(state_data, file)
+
+# Initialize list and state
+turn_list = load_names()
+state = load_state()
+reminding = state['reminding']
+start_time = state['start_time']
+
+@bot.event
+async def on_ready():
+    print(f'Logged in as {bot.user.name}')
+
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return  # Ignore messages sent by the bot itself
+
+    print(f"Received message: '{message.content}' from {message.author}")
+
+    if reminding:
+        # Send reminders here based on turn_list
+        pass
+
+    await bot.process_commands(message)
+
+@bot.command(name='losingisfun!')
+async def start_reminders(ctx):
+    global reminding, start_time
+    reminding = True
+    start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    await ctx.send("Reminders started! One week timer initiated.")
+
+    # Timer for one week
+    await asyncio.sleep(604800)  # 604800 seconds in a week
+
+    reminding = False
+    await ctx.send("Weekly check-in! How's the fort looking 👀? Use `/next` to pass it to the next person.")
+    save_state()
+
+@bot.command(name='next')
+async def pass_to_next(ctx):
+    if not reminding:
+        await ctx.send("Reminders are not active. Use `/losingisfun!` to start the timer.")
+        return
+
+    if not turn_list:
+        await ctx.send("No one in the list.")
+        return
+
+    next_person = turn_list.pop(0)
+    turn_list.append(next_person)
+    save_names()
+    await ctx.send(f"Next person: {next_person}. One week timer initiated.")
+    save_state()
+
+@bot.command(name='shuffle')
+async def shuffle_list(ctx):
+    random.shuffle(turn_list)
+    save_names()
+    await ctx.send("List shuffled.")
+
+@bot.command(name='add')
+async def add_name(ctx, name):
+    if name not in turn_list:
+        turn_list.append(name)
+        save_names()
+        await ctx.send(f"{name} added to the list.")
+    else:
+        await ctx.send(f"{name} is already in the list.")
+
+@bot.command(name='remove')
+async def remove_name(ctx, name):
+    if name in turn_list:
+        turn_list.remove(name)
+        save_names()
+        await ctx.send(f"{name} removed from the list.")
+    else:
+        await ctx.send(f"{name} is not in the list.")
+
+@bot.command(name='reset')
+async def reset_list(ctx):
+    global reminding, start_time
+    turn_list = []
+    reminding = False
+    start_time = None
+    save_names()
+    save_state()
+    await ctx.send("List reset. Reminders stopped.")
+
+# Run the bot
+bot.run(bot_token)
